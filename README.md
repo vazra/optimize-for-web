@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="icon.png" width="128" height="128" alt="Optimize for Web icon">
+</p>
+
 # optimize-for-web
 
 A zero-dependency Mac app that optimizes images and videos for the web. No Homebrew, no Node.js, no setup — just download, open, and optimize.
