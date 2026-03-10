@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- Rounded square background -->
+  <rect x="0" y="0" width="1024" height="1024" rx="220" ry="220" fill="#7c3aed"/>
+
+  <!-- Image frame -->
+  <rect x="200" y="170" width="624" height="468" rx="40" ry="40" fill="none" stroke="#ffffff" stroke-opacity="0.35" stroke-width="32"/>
+
+  <!-- Mountain landscape -->
+  <path d="M200 560 L420 370 L560 475 L680 330 L824 510 L824 598 Q824 638 784 638 L240 638 Q200 638 200 598 Z" fill="#ffffff" fill-opacity="0.2"/>
+
+  <!-- Sun -->
+  <circle cx="340" cy="290" r="50" fill="#ffffff" fill-opacity="0.3"/>
+
+  <!-- Down arrow -->
+  <rect x="488" y="620" width="48" height="120" rx="10" fill="#ffffff"/>
+  <polygon points="512,800 442,720 482,720 482,720 542,720 582,720" fill="#ffffff"/>
+
+  <!-- W label -->
+  <text x="240" y="880" font-family="Helvetica Neue, Arial, sans-serif" font-weight="800" font-size="120" fill="#ffffff" fill-opacity="0.9">W</text>
+</svg>
