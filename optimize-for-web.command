@@ -63,7 +63,7 @@ optimize_image() {
       let pipeline = sharp(input);
       const meta = await pipeline.metadata();
       if (meta.width > 1920) pipeline = pipeline.resize(1920);
-      await pipeline.webp({ quality: 82 }).toFile(output);
+      await pipeline.webp({ quality: 90 }).toFile(output);
       const inSize = fs.statSync(input).size;
       const outSize = fs.statSync(output).size;
       console.log(inSize + ' ' + outSize);

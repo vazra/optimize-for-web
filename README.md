@@ -8,7 +8,7 @@ Select your files, pick an output folder, and get web-ready assets in seconds.
 
 | Input | Output | Settings |
 |-------|--------|----------|
-| JPG, JPEG, PNG | WebP | Quality 82, max 1920px wide, metadata stripped |
+| JPG, JPEG, PNG | WebP | Quality 90, max 1920px wide, metadata stripped |
 | MP4, MOV | MP4 + WebM | H.264 (CRF 28) + VP9 (CRF 42), no audio, metadata stripped |
 
 - Originals are never modified
@@ -46,7 +46,7 @@ Download `optimize-for-web.command` from the [latest release](https://github.com
 git clone https://github.com/vazra/optimize-for-web.git
 ```
 
-Make it executable (if needed):
+Make it executable:
 
 ```bash
 chmod +x optimize-for-web.command
@@ -74,13 +74,18 @@ Drag `optimize-for-web.command` to your Dock for quick access.
 
 ## macOS Gatekeeper
 
-On first launch, macOS may block the script with *"can't be opened because it is from an unidentified developer"*. To fix this:
+On first launch, macOS will block the script with *"Apple could not verify..."*. To fix this:
 
-1. Right-click the file
-2. Click **Open**
-3. Click **Open** again in the dialog
+1. Make it executable (once): open Terminal and run `chmod +x ~/Downloads/optimize-for-web.command`
+2. Open **System Settings → Privacy & Security**
+3. Double-click the file — macOS will block it with *"Apple could not verify..."* — click **Done**
+4. Open **System Settings → Privacy & Security**, scroll down
+5. Click **Open Anyway** next to the blocked message
+6. Enter your password when prompted
 
-This only needs to be done once.
+This only needs to be done once. After that, the tool opens normally.
+
+> **Tip:** On older macOS versions (pre-Sequoia), you can right-click the file and select **Open** instead.
 
 ## Video encoding details
 
