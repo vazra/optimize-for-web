@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
-# optimize-for-web.command
-# Double-click this file to optimize images and videos for the web
-# Prerequisites: brew install node ffmpeg && npm install -g sharp
+# optimize-for-web — zero-dependency Mac app for web image/video optimization
 set -uo pipefail
+
+RESOURCES_DIR="$(dirname "$0")/../Resources"
+CWEBP="$RESOURCES_DIR/cwebp"
+FFMPEG="$RESOURCES_DIR/ffmpeg"
 
 # ── Helpers ──────────────────────────────────────────────────────────
 
-die_dialog() {
-  osascript -e "display dialog \"$1\" buttons {\"OK\"} default button \"OK\" with icon stop with title \"Optimize for Web\""
-  exit 1
+show_dialog() {
+  osascript -e "display dialog \"$1\" buttons {\"OK\"} default button \"OK\" with icon $2 with title \"Optimize for Web\""
 }
 
 notify_done() {
@@ -45,7 +46,7 @@ pick_output_folder() {
 APPLESCRIPT
 }
 
-# ── Image Optimization (Node.js + sharp) ─────────────────────────────
+# ── Image Optimization (cwebp) ──────────────────────────────────────
 
 optimize_image() {
   local input="$1"
@@ -54,21 +55,21 @@ optimize_image() {
   basename=$(basename "$input" | sed 's/\.[^.]*$//')
   local outfile="$outdir/${basename}.webp"
 
-  node -e "
-    const sharp = require('sharp');
-    const fs = require('fs');
-    const input = process.argv[1];
-    const output = process.argv[2];
-    (async () => {
-      let pipeline = sharp(input);
-      const meta = await pipeline.metadata();
-      if (meta.width > 1920) pipeline = pipeline.resize(1920);
-      await pipeline.webp({ quality: 90 }).toFile(output);
-      const inSize = fs.statSync(input).size;
-      const outSize = fs.statSync(output).size;
-      console.log(inSize + ' ' + outSize);
-    })();
-  " "$input" "$outfile"
+  # Get input dimensions
+  local width
+  width=$(sips -g pixelWidth "$input" 2>/dev/null | awk '/pixelWidth/{print $2}')
+
+  local resize_args=""
+  if [ -n "$width" ] && [ "$width" -gt 1920 ]; then
+    resize_args="-resize 1920 0"
+  fi
+
+  "$CWEBP" -q 90 -metadata none $resize_args "$input" -o "$outfile" 2>/dev/null
+
+  local in_size out_size
+  in_size=$(stat -f%z "$input")
+  out_size=$(stat -f%z "$outfile")
+  echo "$in_size $out_size"
 }
 
 # ── Video Optimization (ffmpeg) ──────────────────────────────────────
@@ -82,7 +83,7 @@ optimize_video() {
   local out_webm="$outdir/${basename}.webm"
 
   # H.264 MP4
-  ffmpeg -y -i "$input" \
+  "$FFMPEG" -y -i "$input" \
     -c:v libx264 \
     -crf 28 \
     -preset slow \
@@ -94,7 +95,7 @@ optimize_video() {
     "$out_mp4" 2>/dev/null
 
   # VP9 WebM
-  ffmpeg -y -i "$input" \
+  "$FFMPEG" -y -i "$input" \
     -c:v libvpx-vp9 \
     -crf 42 \
     -b:v 0 \
@@ -107,107 +108,92 @@ optimize_video() {
 
 # ── Main ─────────────────────────────────────────────────────────────
 
-echo ""
-echo "╔══════════════════════════════════════╗"
-echo "║       Optimize for Web               ║"
-echo "╚══════════════════════════════════════╝"
-echo ""
-
 # Pick files
 selected_files=$(pick_files) || exit 0
 if [ -z "$selected_files" ]; then exit 0; fi
 
-# Classify files and check prerequisites
-has_images=false
-has_videos=false
-while IFS= read -r f; do
-  ext="${f##*.}"
-  ext=$(echo "$ext" | tr '[:upper:]' '[:lower:]')
-  case "$ext" in
-    jpg|jpeg|png) has_images=true ;;
-    mp4|mov)      has_videos=true ;;
-    gif)          ;; # skip
-    *)            ;;
-  esac
-done <<< "$selected_files"
-
-# Check prerequisites only for what's needed
-if $has_images; then
-  command -v node &>/dev/null || die_dialog "Node.js is required for image optimization.\n\nInstall with:\n  brew install node"
-  node -e "require('sharp')" 2>/dev/null || die_dialog "The 'sharp' package is required.\n\nInstall with:\n  npm install -g sharp"
-fi
-if $has_videos; then
-  command -v ffmpeg &>/dev/null || die_dialog "ffmpeg is required for video optimization.\n\nInstall with:\n  brew install ffmpeg"
-fi
-
 # Pick output folder
 output_dir=$(pick_output_folder) || exit 0
 
-echo "Output folder: $output_dir"
-echo ""
+# Open a Terminal-like log window via osascript
+LOG_FILE=$(mktemp /tmp/optimize-for-web-log.XXXXXX)
 
 total_in=0
 total_out=0
 file_count=0
-skipped=0
 errors=0
 
-while IFS= read -r filepath; do
-  ext="${filepath##*.}"
-  ext=$(echo "$ext" | tr '[:upper:]' '[:lower:]')
-  name=$(basename "$filepath")
+{
+  echo ""
+  echo "╔══════════════════════════════════════╗"
+  echo "║       Optimize for Web               ║"
+  echo "╚══════════════════════════════════════╝"
+  echo ""
+  echo "Output folder: $output_dir"
+  echo ""
 
-  case "$ext" in
-    jpg|jpeg|png)
-      printf "  IMAGE  %-40s " "$name"
-      if result=$(optimize_image "$filepath" "$output_dir" 2>&1); then
-        read -r in_size out_size <<< "$result"
-        printf "%s → %s\n" "$(format_size "$in_size")" "$(format_size "$out_size")"
-        total_in=$((total_in + in_size))
-        total_out=$((total_out + out_size))
-        file_count=$((file_count + 1))
-      else
-        printf "ERROR\n"
-        echo "    $result" >&2
-        errors=$((errors + 1))
-      fi
-      ;;
-    mp4|mov)
-      printf "  VIDEO  %-40s " "$name"
-      orig_size=$(stat -f%z "$filepath")
-      if optimize_video "$filepath" "$output_dir" 2>&1; then
-        basename_noext=$(basename "$filepath" | sed 's/\.[^.]*$//')
-        mp4_size=$(stat -f%z "$output_dir/${basename_noext}.mp4")
-        webm_size=$(stat -f%z "$output_dir/${basename_noext}.webm")
-        printf "%s → MP4: %s / WebM: %s\n" "$(format_size "$orig_size")" "$(format_size "$mp4_size")" "$(format_size "$webm_size")"
-        total_in=$((total_in + orig_size))
-        total_out=$((total_out + mp4_size))
-        file_count=$((file_count + 1))
-      else
-        printf "ERROR\n"
-        errors=$((errors + 1))
-      fi
-      ;;
-    *)
-      printf "  SKIP   %-40s (unsupported format)\n" "$name"
-      skipped=$((skipped + 1))
-      ;;
-  esac
-done <<< "$selected_files"
+  while IFS= read -r filepath; do
+    ext="${filepath##*.}"
+    ext=$(echo "$ext" | tr '[:upper:]' '[:lower:]')
+    name=$(basename "$filepath")
 
-echo ""
-echo "════════════════════════════════════════"
-echo "  Files optimized: $file_count"
-if [ $skipped -gt 0 ]; then
-  echo "  Files skipped:   $skipped"
-fi
-if [ $errors -gt 0 ]; then
-  echo "  Errors:          $errors"
-fi
-if [ $total_in -gt 0 ]; then
-  echo "  Total: $(format_size $total_in) → $(format_size $total_out)"
-fi
-echo "  Output: $output_dir"
-echo "════════════════════════════════════════"
+    case "$ext" in
+      jpg|jpeg|png)
+        printf "  IMAGE  %-40s " "$name"
+        if result=$(optimize_image "$filepath" "$output_dir" 2>&1); then
+          read -r in_size out_size <<< "$result"
+          printf "%s → %s\n" "$(format_size "$in_size")" "$(format_size "$out_size")"
+          total_in=$((total_in + in_size))
+          total_out=$((total_out + out_size))
+          file_count=$((file_count + 1))
+        else
+          printf "ERROR\n"
+          echo "    $result"
+          errors=$((errors + 1))
+        fi
+        ;;
+      mp4|mov)
+        printf "  VIDEO  %-40s " "$name"
+        orig_size=$(stat -f%z "$filepath")
+        if optimize_video "$filepath" "$output_dir" 2>&1; then
+          basename_noext=$(basename "$filepath" | sed 's/\.[^.]*$//')
+          mp4_size=$(stat -f%z "$output_dir/${basename_noext}.mp4")
+          webm_size=$(stat -f%z "$output_dir/${basename_noext}.webm")
+          printf "%s → MP4: %s / WebM: %s\n" "$(format_size "$orig_size")" "$(format_size "$mp4_size")" "$(format_size "$webm_size")"
+          total_in=$((total_in + orig_size))
+          total_out=$((total_out + mp4_size))
+          file_count=$((file_count + 1))
+        else
+          printf "ERROR\n"
+          errors=$((errors + 1))
+        fi
+        ;;
+      *)
+        printf "  SKIP   %-40s (unsupported format)\n" "$name"
+        ;;
+    esac
+  done <<< "$selected_files"
+
+  echo ""
+  echo "════════════════════════════════════════"
+  echo "  Files optimized: $file_count"
+  if [ $errors -gt 0 ]; then
+    echo "  Errors:          $errors"
+  fi
+  if [ $total_in -gt 0 ]; then
+    echo "  Total: $(format_size $total_in) → $(format_size $total_out)"
+  fi
+  echo "  Output: $output_dir"
+  echo "════════════════════════════════════════"
+} > "$LOG_FILE" 2>&1
+
+# Show results in a Terminal window
+open -a Terminal "$LOG_FILE" 2>/dev/null || true
 
 notify_done "$file_count file(s) optimized. Check your output folder."
+
+if [ $errors -gt 0 ]; then
+  show_dialog "$file_count file(s) optimized with $errors error(s). Check the log for details." "caution"
+else
+  show_dialog "$file_count file(s) optimized successfully!" "note"
+fi

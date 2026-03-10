@@ -1,6 +1,6 @@
 # optimize-for-web
 
-A double-click Mac tool that optimizes images and videos for the web. No GUI framework, no Electron — just native macOS dialogs and a Terminal window showing progress.
+A zero-dependency Mac app that optimizes images and videos for the web. No Homebrew, no Node.js, no setup — just download, open, and optimize.
 
 Select your files, pick an output folder, and get web-ready assets in seconds.
 
@@ -13,79 +13,58 @@ Select your files, pick an output folder, and get web-ready assets in seconds.
 
 - Originals are never modified
 - Optimized files go to a folder you choose
-- Shows file sizes before and after
+- Shows a completion dialog with results
 
 ### Typical savings
 
 | File type | Before | After | Reduction |
 |-----------|--------|-------|-----------|
-| 6.5MB PNG photo | 6.5MB | 176KB | 97% |
-| 2.7MB JPG thumbnail | 2.7MB | 357KB | 87% |
+| 6.5MB PNG photo | 6.5MB | ~200KB | 97% |
+| 2.7MB JPG thumbnail | 2.7MB | ~350KB | 87% |
 | 30MB raw MP4 video | 30MB | ~3MB MP4 + ~1.5MB WebM | 90% |
-
-## Prerequisites
-
-Install these once via [Homebrew](https://brew.sh):
-
-```bash
-brew install node ffmpeg
-npm install -g sharp
-```
-
-> **Note:** `ffmpeg` is only needed if you optimize videos. Image-only usage requires just `node` and `sharp`.
 
 ## Installation
 
-### Option 1: Download
+### Download the app
 
-Download `optimize-for-web.command` from the [latest release](https://github.com/vazra/optimize-for-web/releases/latest).
+1. Download `optimize-for-web-macos-arm64.zip` from the [latest release](https://github.com/vazra/optimize-for-web/releases/latest)
+2. Unzip it
+3. Drag `optimize-for-web.app` to your Applications folder (or anywhere you like)
 
-### Option 2: Clone
+**No Homebrew, no Terminal commands, no dependencies.** Everything is bundled inside the app.
 
-```bash
-git clone https://github.com/vazra/optimize-for-web.git
-```
-
-Make it executable:
-
-```bash
-chmod +x optimize-for-web.command
-```
+> **Note:** This is currently built for Apple Silicon (M1/M2/M3/M4) Macs only.
 
 ## Usage
 
-### Double-click
-
-1. Double-click `optimize-for-web.command` in Finder
+1. Double-click `optimize-for-web.app`
 2. Select images or videos to optimize
 3. Choose an output folder
-4. Wait for the Terminal to show results
-5. A notification plays when done
-
-### From Terminal
-
-```bash
-./optimize-for-web.command
-```
+4. A dialog shows the results when done
 
 ### Keep in Dock
 
-Drag `optimize-for-web.command` to your Dock for quick access.
+Drag the app to your Dock for quick access.
 
 ## macOS Gatekeeper
 
-On first launch, macOS will block the script with *"Apple could not verify..."*. To fix this:
+On first launch, macOS will block the app with *"Apple could not verify..."*. To fix this:
 
-1. Make it executable (once): open Terminal and run `chmod +x ~/Downloads/optimize-for-web.command`
+1. Double-click the app — macOS will block it — click **Done**
 2. Open **System Settings → Privacy & Security**
-3. Double-click the file — macOS will block it with *"Apple could not verify..."* — click **Done**
-4. Open **System Settings → Privacy & Security**, scroll down
-5. Click **Open Anyway** next to the blocked message
-6. Enter your password when prompted
+3. Scroll down — you'll see a message about the app being blocked
+4. Click **Open Anyway**
+5. Enter your password when prompted
 
-This only needs to be done once. After that, the tool opens normally.
+This only needs to be done once. After that, the app opens normally.
 
-> **Tip:** On older macOS versions (pre-Sequoia), you can right-click the file and select **Open** instead.
+## How it works
+
+The app bundles static binaries of:
+- [**cwebp**](https://developers.google.com/speed/webp/) (Google's WebP encoder) for image conversion
+- [**ffmpeg**](https://ffmpeg.org/) for video conversion
+
+No external tools or runtimes are needed on the user's machine.
 
 ## Video encoding details
 
@@ -100,6 +79,14 @@ This only needs to be done once. After that, the tool opens normally.
 - `deadline good`, `cpu-used 3`
 - No audio track
 - All metadata stripped
+
+## Advanced: command-line usage
+
+The app also ships as a standalone `.command` file for Terminal users who prefer the CLI. See the [releases page](https://github.com/vazra/optimize-for-web/releases) for both formats.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ## License
 
