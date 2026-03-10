@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # optimize-for-web.command
-# Double-click this file to optimize images and videos for datafi.co
+# Double-click this file to optimize images and videos for the web
 # Prerequisites: brew install node ffmpeg && npm install -g sharp
 set -uo pipefail
 
@@ -109,7 +109,7 @@ optimize_video() {
 
 echo ""
 echo "╔══════════════════════════════════════╗"
-echo "║     Datafi — Optimize for Web        ║"
+echo "║       Optimize for Web               ║"
 echo "╚══════════════════════════════════════╝"
 echo ""
 
